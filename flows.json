@@ -2,7 +2,7 @@
     {
         "id": "476f2e5ab9098368",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Youtube analyst",
         "disabled": false,
         "info": "",
         "env": []
@@ -30,7 +30,7 @@
         "type": "function",
         "z": "476f2e5ab9098368",
         "name": "get user data",
-        "func": "msg.userData = msg.payload;\n\n\nfunction extractVideoId(youtubeUrl) {\n    const match = youtubeUrl.match(/[?&]v=([^?&]+)/);\n    return match ? match[1] : null;\n}\n\nconst videoId = extractVideoId(msg.userData.url);\nnode.warn(videoId);\n\nmsg.payload = {\n    key: 'AIzaSyDYnan_lq8bf3wZAVdDh34VPDggtb9-LZc',\n    part: 'snippet',\n    videoId: videoId,\n    // maxResults: 100 \n};\n\n\nreturn msg;\n",
+        "func": "msg.userData = msg.payload;\n\n\nfunction extractVideoId(youtubeUrl) {\n    const match = youtubeUrl.match(/[?&]v=([^?&]+)/);\n    return match ? match[1] : null;\n}\n\nconst videoId = extractVideoId(msg.userData.url);\nnode.warn(videoId);\n\nmsg.payload = {\n    key: msg.userData.googleKey,\n    part: 'snippet',\n    videoId: videoId,\n    maxResults: 100 \n};\n\n\nreturn msg;\n",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
@@ -48,7 +48,7 @@
         "id": "dcdbc05a2e9afcc5",
         "type": "http request",
         "z": "476f2e5ab9098368",
-        "name": "",
+        "name": "request to googleapis",
         "method": "GET",
         "ret": "obj",
         "paytoqs": "query",
@@ -60,68 +60,35 @@
         "authType": "",
         "senderr": false,
         "headers": [],
-        "x": 450,
+        "x": 480,
         "y": 180,
         "wires": [
             [
-                "b21b227b32b8af6a",
                 "98459fafe128a520"
             ]
         ]
     },
     {
-        "id": "b21b227b32b8af6a",
-        "type": "debug",
-        "z": "476f2e5ab9098368",
-        "name": "debug 1",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 560,
-        "y": 140,
-        "wires": []
-    },
-    {
         "id": "98459fafe128a520",
         "type": "function",
         "z": "476f2e5ab9098368",
-        "name": "function 1",
-        "func": "\nconst comments = msg.payload.items.map(item => item.snippet.topLevelComment.snippet.textDisplay);\n\n\n\nmsg.OPENAI_API_KEY = msg.userData.openAIKey;\nmsg.model = msg.userData.model;\n\nmsg.messages = [\n    {\n        role: \"system\",\n        content: \"act as a youtude comments analyst\",\n    },\n    {\n        role: \"user\", content: `${comments}\n    Based on the above reviews of an app, answer the question:\n    Question: ${msg.userData.question}\n    Answer:`\n    },\n];\n\n\n\nreturn msg;\n",
-        "outputs": 1,
+        "name": " forming a request",
+        "func": "if (msg.statusCode === 200) {\nconst comments = msg.payload.items.map(item => item.snippet.topLevelComment.snippet.textDisplay);\n\nmsg.OPENAI_API_KEY = msg.userData.openAIKey;\nmsg.model = msg.userData.model;\n\nmsg.messages = [\n    {\n        role: \"system\",\n        content: \"act as a youtude comments analyst\",\n    },\n    {\n        role: \"user\", content: `${comments}\n    Based on the above reviews of an app, answer the question:\n    Question: ${msg.userData.question}\n    Answer:`\n    },\n];\n    return [msg,null];\n}\nelse {\n    msg.payload = `     Ooops, something went wrong!🥲\n    ${msg.payload.error.message}`\n\n    return [null, msg];\n}\n\n",
+        "outputs": 2,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 620,
+        "x": 690,
         "y": 180,
         "wires": [
             [
-                "4fb3bf6e92123c36",
                 "92a6e6bf1baa8344"
+            ],
+            [
+                "986eee670103bcc2"
             ]
         ]
-    },
-    {
-        "id": "4fb3bf6e92123c36",
-        "type": "debug",
-        "z": "476f2e5ab9098368",
-        "name": "debug 2",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 760,
-        "y": 140,
-        "wires": []
     },
     {
         "id": "92a6e6bf1baa8344",
@@ -140,8 +107,8 @@
             "value": "[]"
         },
         "OPENAI_API_KEY": "",
-        "x": 800,
-        "y": 180,
+        "x": 880,
+        "y": 160,
         "wires": [
             [
                 "5728ff3a8f9bebbd"
@@ -153,14 +120,14 @@
         "type": "function",
         "z": "476f2e5ab9098368",
         "name": "response",
-        "func": "if(msg.statusCode === 200){\n    const answers = msg.payload.choices[0].message.content\n    msg.payload= answers;\n}\nelse {\n    msg.payload = \"Ooops, something went wrong!\"\n}\n\nreturn msg;",
+        "func": "if(msg.statusCode === 200){\n    const answers = msg.payload.choices[0].message.content\n    msg.payload= answers;\n}\nelse {\n    msg.payload = `     Ooops, something went wrong!🥲\n    ${msg.payload.error.message}`\n}\n\nreturn msg;",
         "outputs": 1,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 960,
-        "y": 180,
+        "x": 1040,
+        "y": 160,
         "wires": [
             [
                 "fb2639e61db36f9f"
@@ -174,8 +141,8 @@
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 1090,
-        "y": 180,
+        "x": 1170,
+        "y": 160,
         "wires": []
     },
     {
@@ -249,7 +216,7 @@
         "fieldType": "msg",
         "format": "css",
         "syntax": "mustache",
-        "template": ".main_container {\n  top:0 !important;\n  left: 0 !important; \n  height: 100vh !important;\n  width: 100% !important;\n  padding: 10px !important;\n}\n.main_container>div>div>div>div>div>div>div>div>div>div>div>div>div{\n  display:flex;\n  justify-content: center;\n  align-items: center;\n  gap: 10px;\n}\n\n.main_container>div>div>div>div>div>div>div>div>div>div {\n  height:100% !important; \n}\n.form_container, .answer_container   {\n    position: relative !important;\n    top: 0 !important;\n    left: 0 !important;\n}\n\n.bp3-input, .select-button {\n    border-radius: 5px !important;\n    color: #495894 !important;\n}\n.select-button span {\n    color: inherit !important;\n}\n\n.title .bp3-ui-text {\n   font-size: clamp(20px, 2.3vw, 50px) !important; \n   cursor: default !important;\n}\n\n.generate_btn span{\n    color: #FFFFFF !important;\n}\n.answer_container{\n  height: 100% !important;\n}\n.canvas{\n  height: inherit !important;\n}\n.answer_container >div >div >div >div >div {\n  border-radius: 10px;\n  padding: 7px !important;\n \n}\n",
+        "template": ".main_container {\n  top:0 !important;\n  left: 0 !important; \n  height: 100vh !important;\n  width: 100% !important;\n  padding: 10px !important;\n}\n.main_container>div>div>div>div>div>div>div>div>div>div>div>div>div{\n  display:flex;\n  justify-content: center;\n  align-items: center;\n  gap: 10px;\n}\n\n.main_container>div>div>div>div>div>div>div>div>div>div {\n  height:100% !important; \n}\n.form_container, .answer_container   {\n    position: relative !important;\n    top: 0 !important;\n    left: 0 !important;\n}\n\n.bp3-input, .select-button {\n    border-radius: 5px !important;\n    color: #231F20 !important;\n}\n.select-button span {\n    color: inherit !important;\n}\n\n.title .bp3-ui-text {\n   font-size: clamp(20px, 2.3vw, 50px) !important; \n   cursor: default !important;\n}\n\n.generate_btn span{\n    color: #FFFFFF !important;\n}\n\n.answer_container >div >div >div >div >div {\n  border-radius: 10px;\n  padding: 7px !important;\n \n}\n.label-container {\n  justify-content: space-between !important;\n}",
         "output": "str",
         "x": 270,
         "y": 40,
@@ -258,5 +225,16 @@
                 "bd563a0724955d05"
             ]
         ]
+    },
+    {
+        "id": "986eee670103bcc2",
+        "type": "http response",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 850,
+        "y": 200,
+        "wires": []
     }
 ]
