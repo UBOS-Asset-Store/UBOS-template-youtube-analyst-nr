@@ -1,0 +1,262 @@
+[
+    {
+        "id": "476f2e5ab9098368",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "a94c0c3b5ee98e4d",
+        "type": "http in",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "url": "/getFeedback",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 110,
+        "y": 180,
+        "wires": [
+            [
+                "643b61658b1d08d7",
+                "3ddddace26481a2a"
+            ]
+        ]
+    },
+    {
+        "id": "643b61658b1d08d7",
+        "type": "function",
+        "z": "476f2e5ab9098368",
+        "name": "get user data",
+        "func": "msg.userData = msg.payload;\n\n\nfunction extractVideoId(youtubeUrl) {\n    const match = youtubeUrl.match(/[?&]v=([^?&]+)/);\n    return match ? match[1] : null;\n}\n\nconst videoId = extractVideoId(msg.userData.url);\nnode.warn(videoId);\n\nmsg.payload = {\n    key: 'AIzaSyDYnan_lq8bf3wZAVdDh34VPDggtb9-LZc',\n    part: 'snippet',\n    videoId: videoId,\n    // maxResults: 100 \n};\n\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 290,
+        "y": 180,
+        "wires": [
+            [
+                "dcdbc05a2e9afcc5"
+            ]
+        ]
+    },
+    {
+        "id": "dcdbc05a2e9afcc5",
+        "type": "http request",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "method": "GET",
+        "ret": "obj",
+        "paytoqs": "query",
+        "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 450,
+        "y": 180,
+        "wires": [
+            [
+                "b21b227b32b8af6a",
+                "98459fafe128a520"
+            ]
+        ]
+    },
+    {
+        "id": "b21b227b32b8af6a",
+        "type": "debug",
+        "z": "476f2e5ab9098368",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 560,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "98459fafe128a520",
+        "type": "function",
+        "z": "476f2e5ab9098368",
+        "name": "function 1",
+        "func": "\nconst comments = msg.payload.items.map(item => item.snippet.topLevelComment.snippet.textDisplay);\n\n\n\nmsg.OPENAI_API_KEY = msg.userData.openAIKey;\nmsg.model = msg.userData.model;\n\nmsg.messages = [\n    {\n        role: \"system\",\n        content: \"act as a youtude comments analyst\",\n    },\n    {\n        role: \"user\", content: `${comments}\n    Based on the above reviews of an app, answer the question:\n    Question: ${msg.userData.question}\n    Answer:`\n    },\n];\n\n\n\nreturn msg;\n",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 620,
+        "y": 180,
+        "wires": [
+            [
+                "4fb3bf6e92123c36",
+                "92a6e6bf1baa8344"
+            ]
+        ]
+    },
+    {
+        "id": "4fb3bf6e92123c36",
+        "type": "debug",
+        "z": "476f2e5ab9098368",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 760,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "92a6e6bf1baa8344",
+        "type": "openai-ubos",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "model": "gpt-3.5-turbo",
+        "temperature": 0.5,
+        "max_tokens": 500,
+        "prompt": "",
+        "frequency_penalty": 0,
+        "presence_penalty": 0,
+        "top_p": 1,
+        "stop": {
+            "type": "json",
+            "value": "[]"
+        },
+        "OPENAI_API_KEY": "",
+        "x": 800,
+        "y": 180,
+        "wires": [
+            [
+                "5728ff3a8f9bebbd"
+            ]
+        ]
+    },
+    {
+        "id": "5728ff3a8f9bebbd",
+        "type": "function",
+        "z": "476f2e5ab9098368",
+        "name": "response",
+        "func": "if(msg.statusCode === 200){\n    const answers = msg.payload.choices[0].message.content\n    msg.payload= answers;\n}\nelse {\n    msg.payload = \"Ooops, something went wrong!\"\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 960,
+        "y": 180,
+        "wires": [
+            [
+                "fb2639e61db36f9f"
+            ]
+        ]
+    },
+    {
+        "id": "fb2639e61db36f9f",
+        "type": "http response",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1090,
+        "y": 180,
+        "wires": []
+    },
+    {
+        "id": "d1a4dfc3923a698c",
+        "type": "catch",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "scope": null,
+        "uncaught": false,
+        "x": 80,
+        "y": 240,
+        "wires": [
+            [
+                "3ddddace26481a2a"
+            ]
+        ]
+    },
+    {
+        "id": "3ddddace26481a2a",
+        "type": "debug",
+        "z": "476f2e5ab9098368",
+        "name": "msg",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 230,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "b7ab102cf9517aa7",
+        "type": "http in",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "url": "/css",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 100,
+        "y": 40,
+        "wires": [
+            [
+                "ec25cd2e1b3a4c03"
+            ]
+        ]
+    },
+    {
+        "id": "bd563a0724955d05",
+        "type": "http response",
+        "z": "476f2e5ab9098368",
+        "name": "",
+        "statusCode": "",
+        "headers": {
+            "content-type": "text/css"
+        },
+        "x": 430,
+        "y": 40,
+        "wires": []
+    },
+    {
+        "id": "ec25cd2e1b3a4c03",
+        "type": "template",
+        "z": "476f2e5ab9098368",
+        "name": "customCSS",
+        "field": "payload",
+        "fieldType": "msg",
+        "format": "css",
+        "syntax": "mustache",
+        "template": ".main_container {\n  top:0 !important;\n  left: 0 !important; \n  height: 100vh !important;\n  width: 100% !important;\n  padding: 10px !important;\n}\n.main_container>div>div>div>div>div>div>div>div>div>div>div>div>div{\n  display:flex;\n  justify-content: center;\n  align-items: center;\n  gap: 10px;\n}\n\n.main_container>div>div>div>div>div>div>div>div>div>div {\n  height:100% !important; \n}\n.form_container, .answer_container   {\n    position: relative !important;\n    top: 0 !important;\n    left: 0 !important;\n}\n\n.bp3-input, .select-button {\n    border-radius: 5px !important;\n    color: #495894 !important;\n}\n.select-button span {\n    color: inherit !important;\n}\n\n.title .bp3-ui-text {\n   font-size: clamp(20px, 2.3vw, 50px) !important; \n   cursor: default !important;\n}\n\n.generate_btn span{\n    color: #FFFFFF !important;\n}\n.answer_container{\n  height: 100% !important;\n}\n.canvas{\n  height: inherit !important;\n}\n.answer_container >div >div >div >div >div {\n  border-radius: 10px;\n  padding: 7px !important;\n \n}\n",
+        "output": "str",
+        "x": 270,
+        "y": 40,
+        "wires": [
+            [
+                "bd563a0724955d05"
+            ]
+        ]
+    }
+]
